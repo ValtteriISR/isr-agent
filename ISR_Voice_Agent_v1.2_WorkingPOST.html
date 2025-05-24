@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ISR Voice Agent – v1.2 Testi (Toimiva POST)</title>
+  <style>
+    body { font-family: sans-serif; padding: 40px; max-width: 600px; margin: auto; }
+    h1 { font-size: 28px; }
+    button { font-size: 18px; padding: 10px 20px; margin-top: 20px; }
+    #output { margin-top: 30px; font-size: 20px; }
+    #instructions { background: #f0f0f0; padding: 15px; border-left: 4px solid #4CAF50; margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <h1>🎙️ ISR Voice Agent – v1.2 Testi (Toimiva POST)</h1>
+  <button onclick="startListening()">Puhu ISR:lle</button>
+  <div id="output">Odottaa komentoa...</div>
+
+  <div id="instructions">
+    <strong>🗣️ Puhu näin:</strong><br>
+    – "Kirjaa tehtävä: Soita Danielille huomenna klo 10"<br>
+    – "Lisää tehtävä: Muista lähettää tarjous perjantaina"<br>
+    – "Luo tehtävä: Valmistele kokous ensi viikolle"<br><br>
+    Agentti kirjaa tehtävän ja eräpäivän ISR – TÄMÄ PÄIVÄ -taulukkoon ja vahvistaa puheella.
+  </div>
+
+  <script>
+    const output = document.getElementById('output');
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'fi-FI';
+    recognition.interimResults = false;
+
+    function startListening() {
+      output.textContent = '🎤 Kuunnellaan...';
+      recognition.start();
+    }
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      output.textContent = '🧠 ISR kuuli: "' + transcript + '"';
+
+      const commandText = transcript.toLowerCase();
+
+      if (
+        commandText.includes("kirjaa tehtävä") ||
+        commandText.includes("kirja tehtävä") ||
+        commandText.includes("lisää tehtävä") ||
+        commandText.includes("luo tehtävä")
+      ) {
+        fetch('https://script.google.com/macros/s/AKfycbwveaS8YZSAEAjt8m89X0cz6M93YBD-dRPfJcbf8mVBv5s1HJH9uZK-XS9alh1_BYnN-A/exec', {
+          method: 'POST',
+          body: JSON.stringify({ command: transcript }),
+          headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.text())
+        .then(data => {
+          speak(data);
+          output.textContent += "\n✅ " + data;
+        })
+        .catch(error => {
+          speak("Virhe yhteydessä agenttiin.");
+          output.textContent += "\n⚠️ Yhteysvirhe.";
+        });
+      } else {
+        speak("En ymmärtänyt komentoa.");
+      }
+    };
+
+    function speak(text) {
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'fi-FI';
+      synth.speak(utterance);
+    }
+
+    recognition.onerror = function(event) {
+      output.textContent = '⚠️ Virhe: ' + event.error;
+    };
+  </script>
+</body>
+</html>
